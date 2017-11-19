@@ -28,6 +28,9 @@
 			}
 			
 			$method = null;
+			if (!function_exists('xmlrpc_encode_request')) {
+				throw new \Exception("The php-xmlrpc extension is not installed. Please install this to use this functionality.");
+			}
 			$this->arguments = xmlrpc_decode_request($xml, $method, 'utf-8');
 			
 			if ($this->arguments === null) {
