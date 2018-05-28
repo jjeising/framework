@@ -104,7 +104,11 @@
 			str_replace(
 				['ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü'],
 				['ae', 'oe', 'üe', 'AE', 'OE', 'UE'],
-				Normalizer::normalize($string, Normalizer::FORM_C)
+				preg_replace(
+					['/Ä(?=\p{Ll})/u', '/Ö(?=\p{Ll})/u', '/Ü(?=\p{Ll})/u'],
+					['Ae', 'Oe', 'Ue'],
+					Normalizer::normalize($string, Normalizer::FORM_C)
+				)
 			)
 		);
 	}
