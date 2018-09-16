@@ -45,7 +45,7 @@
 			'date' => self::TYPE_DATE,
 			'time' => self::TYPE_TIME,
 			'binary' => self::TYPE_BINARY,
-			'enum' => self::TYPE_ENUM,
+			'ENUM' => self::TYPE_ENUM,
 			'ltree' => self::TYPE_STRING,
 			'xml' => self::TYPE_STRING,
 			'json' => self::TYPE_STRING,
@@ -131,10 +131,54 @@
 		
 		public function getFields($table) {
 			$statement = $this->query(
-				'SELECT column_name, data_type, is_nullable,
-					column_default, character_maximum_length, numeric_precision
-				FROM information_schema.columns
-				WHERE table_name = ?',
+				'SELECT
+					a.attname AS column_name,
+					pg_get_expr(ad.adbin, ad.adrelid) AS column_default,
+					CASE
+						WHEN a.attnotnull OR t.typtype = \'d\' AND t.typnotnull THEN \'NO\'
+						ELSE \'YES\'
+					END AS is_nullable,
+					CASE
+						WHEN t.typtype = \'e\' THEN \'ENUM\'
+						WHEN t.typtype = \'d\' THEN
+						CASE
+							WHEN bt.typelem <> 0::oid AND bt.typlen = -1 THEN \'ARRAY\'
+							WHEN nbt.nspname = \'pg_catalog\' THEN format_type(t.typbasetype, NULL)
+							ELSE \'USER-DEFINED\'
+						END
+						ELSE
+						CASE
+							WHEN t.typelem <> 0::oid AND t.typlen = -1 THEN \'ARRAY\'
+							WHEN nt.nspname = \'pg_catalog\' THEN format_type(a.atttypid, NULL)
+							ELSE \'USER-DEFINED\'
+						END
+					END AS data_type,
+					CASE
+						WHEN t.typtype = \'e\' THEN
+							(SELECT string_agg(e.enumlabel, \',\' ORDER BY e.enumsortorder)
+								FROM pg_catalog.pg_enum e
+								WHERE e.enumtypid = t.oid)
+						ELSE NULL
+					END AS options,
+					information_schema._pg_char_max_length(information_schema._pg_truetypid(a.*, t.*), information_schema._pg_truetypmod(a.*, t.*))
+						AS character_maximum_length,
+					information_schema._pg_numeric_precision(information_schema._pg_truetypid(a.*, t.*), information_schema._pg_truetypmod(a.*, t.*))
+						AS numeric_precision
+				FROM pg_attribute a
+				LEFT JOIN pg_attrdef ad ON a.attrelid = ad.adrelid AND a.attnum = ad.adnum
+				JOIN pg_class c ON a.attrelid = c.oid
+				JOIN (pg_type t
+				JOIN pg_namespace nt ON t.typnamespace = nt.oid) ON a.atttypid = t.oid
+				LEFT JOIN (pg_type bt
+				JOIN pg_namespace nbt ON bt.typnamespace = nbt.oid) ON t.typtype = \'d\' AND t.typbasetype = bt.oid
+				WHERE
+					NOT pg_is_other_temp_schema(c.relnamespace) AND
+					a.attnum > 0 AND
+					NOT a.attisdropped AND
+					(c.relkind = ANY (ARRAY[\'r\', \'v\', \'f\'])) AND
+					(pg_has_role(c.relowner, \'USAGE\') OR
+						has_column_privilege(c.oid, a.attnum, \'SELECT, INSERT, UPDATE, REFERENCES\')) AND
+					c.relname = ?',
 				[$table]
 			);
 			
@@ -151,6 +195,7 @@
 					'length' => null,
 					'null' => ($column['is_nullable'] === 'YES'),
 					'default' => null,
+					'defaultOnUpdate' => null,
 					'options' => []
 				];
 				
@@ -181,6 +226,10 @@
 					mb_strpos($column['column_default'], 'nextval') === false
 				) {
 					$field['default'] = $column['column_default'];
+				}
+				
+				if ($column['options'] !== null) {
+					$field['options'] = explode(',', $column['options']);
 				}
 				
 				$fields[$column['column_name']] = $field;
