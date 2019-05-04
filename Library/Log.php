@@ -235,8 +235,7 @@
 			
 			foreach (self::$_messages as $message) {
 				if (!is_string($message[2])) {
-					// TODO: throwable?
-					if ($message[2] instanceof Exception) {
+					if ($message[2] instanceof Throwable) {
 						$type = get_class($message[2]);
 						$message[2] = $message[2]->getMessage() . ' in ' .
 							$message[2]->getFile() . ':' .
