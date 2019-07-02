@@ -153,7 +153,7 @@
 			if (self::$_flush) static::write();
 		}
 		
-		public static function handleError($type, $message, $file = null, $line = null, $context = null) {
+		public static function handleError($type, $message, $file = null, $line = null) {
 			switch ($type) {
 				case E_PARSE:
 					$level = self::FATAL;
@@ -179,7 +179,9 @@
 					break;
 			}
 			
-			// TODO: check $level agains $_level
+			if ($level < self::$_level) {
+				return false;
+			}
 			
 			self::$_messages[] = [
 				time(),
@@ -193,10 +195,23 @@
 			return false;
 		}
 		
-		public static function handleException($exception) {
-			self::$_messages[] = [time(), self::EXCEPTION, $exception];
+		public static function exception(Throwable $exception) {
+			self::$_messages[] = [
+				time(),
+				($exception instanceof Error) ? self::ERROR : self::EXCEPTION,
+				$exception->getMessage(),
+				$exception->getFile(),
+				$exception->getLine(),
+				$exception->getTrace()
+			];
+		}
+		
+		public static function handleException(Throwable $exception) {
+			self::exception($exception);
 			
-			// TODO: exit(255);? otherwise PHP exists with 0?
+			// PHP normaly exists with exit code 255 for uncaught exceptions,
+			// simulate this here (via libphutil)
+			exit(255);
 		}
 		
 		public static function startTimer($name) {
@@ -235,14 +250,10 @@
 			
 			foreach (self::$_messages as $message) {
 				if (!is_string($message[2])) {
-					// TODO: throwable?
-					if ($message[2] instanceof Exception) {
-						$type = get_class($message[2]);
-						$message[2] = $message[2]->getMessage() . ' in ' .
-							$message[2]->getFile() . ':' .
-							$message[2]->getLine() . "\n" .
-							$message[2]->getTraceAsString();
-					} elseif (is_object($message[2])) {
+					if (
+						is_object($message[2]) and
+						!method_exists($message[2], '__debugInfo')
+					) {
 						$message[2] = (string) new ReflectionObject($message[2]);
 					} elseif (is_array($message[2])) {
 						$message[2] = var_export($message[2], true);
@@ -267,12 +278,15 @@
 					}
 				}
 				
+				$date = date(self::$_dateFormat, $message[0]);
+				$formattedMessage = implode("\n\t", explode("\n", $message[2]));
+								
 				if (!self::$_colorize) {
 					$log .= sprintf(
 						self::$_format,
-						date(self::$_dateFormat, $message[0]),
+						$date,
 						self::$_levels[$message[1]],
-						implode("\n\t", explode("\n", $message[2]))
+						$formattedMessage
 					);
 					continue;
 				}
@@ -280,12 +294,12 @@
 				$log .= sprintf(
 					self::$_format,
 					self::COLOR_YELLOW .
-					date(self::$_dateFormat, $message[0]) .
+					$date .
 					self::COLOR_RESET,
 					self::$_colors[$message[1]] .
 					self::$_levels[$message[1]] .
 					self::COLOR_RESET,
-					implode("\n\t", explode("\n", $message[2]))
+					$formattedMessage
 				);
 			}
 			
@@ -345,6 +359,10 @@
 				}
 				
 				$message .= "\n";
+			}
+			
+			if ($message === '') {
+				return $message;
 			}
 			
 			return substr($message, 0, -1);
