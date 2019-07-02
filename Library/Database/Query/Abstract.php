@@ -398,11 +398,6 @@
 				return false;
 			}
 			
-			// TODO: deprecate behaviour?
-			if ($this->_type === self::TYPE_INSERT) {
-				return Database::$Instance->getInsertId($statement);
-			}
-			
 			return $statement->rowCount();
 		}
 		
