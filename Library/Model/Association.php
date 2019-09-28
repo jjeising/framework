@@ -37,7 +37,7 @@
 			'order_by' => null,
 			'limit' => null,
 			
-			'join_assoications' => null
+			'join_associations' => null
 		];
 		
 		public function __construct(Model $parent, $name, array $properties) {
@@ -211,8 +211,8 @@
 				$resource->limit($properties['limit']);
 			}
 			
-			if ($properties['join_assoications'] !== null) {
-				$resource->join($properties['join_assoications']);
+			if ($properties['join_associations'] !== null) {
+				$resource->join($properties['join_associations']);
 			}
 		}
 	}
