@@ -86,11 +86,18 @@
 			
 			try {
 				$response = $this->{$method}(...$this->arguments);
-			} catch (Exception $e) {
-				// try to fix error caused by PHP N in index.php:52 on error
+			} catch (DatabaseException $e) {
 				$this->arguments = array_merge($parentArguments, $this->arguments);
 				
-				$faultCode = ($e->getCode() > 0) ? $e->getCode() : -32600;
+				Log::handleException($e);
+				
+				return $this->_XMLRPCFault(-32500, 'Database error');
+			} catch (Throwable $e) {
+				$this->arguments = array_merge($parentArguments, $this->arguments);
+				
+				Log::handleException($e);
+				
+				$faultCode = ($e->getCode() > 0) ? $e->getCode() : -32500;
 				
 				return $this->_XMLRPCFault($faultCode, $e->getMessage());
 			}
