@@ -89,13 +89,13 @@
 			} catch (DatabaseException $e) {
 				$this->arguments = array_merge($parentArguments, $this->arguments);
 				
-				Log::handleException($e);
+				Log::exception($e);
 				
 				return $this->_XMLRPCFault(-32500, 'Database error');
 			} catch (Throwable $e) {
 				$this->arguments = array_merge($parentArguments, $this->arguments);
 				
-				Log::handleException($e);
+				Log::exception($e);
 				
 				$faultCode = ($e->getCode() > 0) ? $e->getCode() : -32500;
 				
