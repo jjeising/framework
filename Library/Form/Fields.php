@@ -275,7 +275,7 @@
 			}
 			
 			return $this->_label($attributes['id'], $label) .
-				View::tag('textarea', $attributes,  htmlspecialchars($value, ENT_QUOTES, 'UTF-8'));
+				View::tag('textarea', $attributes, ($value !== null)? htmlspecialchars($value, ENT_QUOTES, 'UTF-8') : '');
 		}
 		
 		public function submit($value, array $attributes = []) {

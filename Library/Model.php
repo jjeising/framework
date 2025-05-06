@@ -573,23 +573,22 @@
 			return $entries;
 		}
 		
-		public static function getFields() {
-			// local static, this allows storage per child class
-			static $fields;
+		public static function getFields(): array {
+			static $fields = [];
 			
-			if ($fields === null) {
-				if (!$fields = Database::$Instance->getFields(static::TABLE)) {
+			if (!isset($fields[static::class])) {
+				if (!$fields[static::class] = Database::$Instance->getFields(static::TABLE)) {
 					throw new RuntimeException(
 						'unable to get fields for table "' . static::TABLE . '"'
 					);
 				}
 			}
 			
-			return $fields;
+			return $fields[static::class];
 		}
 		
-		public function getAssociations(array $including = null, array $types = ['hasOne', 'belongsTo', 'hasMany', 'hasAndBelongsToMany']) {
-			// Associations do not store any state, only instanciate once per model base class
+		public function getAssociations(array $including = null, array $types = ['hasOne', 'belongsTo', 'hasMany', 'hasAndBelongsToMany']): array {
+			// Associations do not store any state, only instantiate once per model base class
 			static $associations = [];
 			
 			$result = [];
@@ -602,16 +601,16 @@
 						continue;
 					}
 					
-					if (!isset($associations[$name])) {
+					if (!isset($associations[static::class][$name])) {
 						$class = 'Model_Association_' . ucfirst($type);
-						$associations[$name] = new $class(
+						$associations[static::class][$name] = new $class(
 							$this,
 							$name,
 							$properties
 						);
 					}
 					
-					$result[$name] = $associations[$name];
+					$result[$name] = $associations[static::class][$name];
 				}
 			}
 			

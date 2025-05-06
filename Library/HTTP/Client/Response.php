@@ -64,8 +64,6 @@
 					break;
 				case 'application/xml':
 				case 'text/xml':
-					libxml_disable_entity_loader(true);
-					
 					// FIXME: disable warnings?
 					if (($response = simplexml_load_string($this->_response[2])) === false) {
 						return false;
