@@ -223,6 +223,7 @@
 						$field['default'] = false;
 					}
 				} elseif (
+					$column['column_default'] !== null and
 					mb_strpos($column['column_default'], 'nextval') === false
 				) {
 					$field['default'] = $column['column_default'];
