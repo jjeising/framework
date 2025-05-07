@@ -573,7 +573,7 @@
 			return $entries;
 		}
 		
-		public static function getFields(): array {
+		public static function getFields() {
 			static $fields = [];
 			
 			if (!isset($fields[static::class])) {
@@ -587,7 +587,7 @@
 			return $fields[static::class];
 		}
 		
-		public function getAssociations(array $including = null, array $types = ['hasOne', 'belongsTo', 'hasMany', 'hasAndBelongsToMany']): array {
+		public function getAssociations(array $including = null, array $types = ['hasOne', 'belongsTo', 'hasMany', 'hasAndBelongsToMany']) {
 			// Associations do not store any state, only instantiate once per model base class
 			static $associations = [];
 			
